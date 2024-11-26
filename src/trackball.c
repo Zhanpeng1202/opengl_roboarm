@@ -102,13 +102,12 @@ int motion_start = 0;
 void track_ball(int x, int y, mat4 *ctm){
     float floatx = (float)2*(float)x/1023 -1;
     float floaty = (float)-2*(float)y/1023 +1 ;
-    // printf("clicked:%d  motion_start:%d\n",clicked,motion_start);
 
     
     if(motion_start ==0){
-        printf("clicked:%d  motion_start:%d\n",clicked,motion_start);
         stored_x = floatx;
         stored_y = floaty;
+        motion_start = 1;
         return;
     }
     if(clicked == 1) {

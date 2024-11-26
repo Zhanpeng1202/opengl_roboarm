@@ -94,13 +94,10 @@ void display(void)
 void mouse(int button, int state, int x, int y) {
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         clicked  = 1;
-        motion_start = 1;
     }
     if(button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
-        printf("LEFT DOWN \n");
         clicked  = 0;
         motion_start = 0;
-        printf("-----clicked: %d motion%d\n", clicked,motion_start);
     }
 
 
