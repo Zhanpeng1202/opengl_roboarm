@@ -10,7 +10,7 @@ CFLAGS = -Iinclude -Ilib -Isrc           # Header dir
 # 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
-LDFLAGS = $(wildcard lib/*.a)       # link lib dir and lib name
+
 OPTIONS = -framework GLUT -framework OpenGL
 DEFINES = -D GL_SILENCE_DEPRECATION
 

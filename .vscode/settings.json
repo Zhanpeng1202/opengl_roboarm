@@ -3,6 +3,9 @@
         "*.rmd": "markdown",
         "__locale": "c",
         "templib.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "initshader.h": "c",
+        "math.h": "c",
+        "generate.h": "c"
     }
 }

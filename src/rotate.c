@@ -6,42 +6,6 @@
 // ---------------------------------------
 float FLT_MAX = 100000;
 float FLT_MIN = -100000;
-void normalizeToUnitCube(vec4* vertices, int numVertices) {
-    GLfloat minX = FLT_MAX, maxX = FLT_MIN;
-    GLfloat minY = FLT_MAX, maxY = FLT_MIN;
-    GLfloat minZ = FLT_MAX, maxZ = FLT_MIN;
-
-    // Step 1: Find the bounding box (min and max values for x, y, z)
-    for (int i = 0; i < numVertices; i++) {
-        if (vertices[i].x < minX) minX = vertices[i].x;
-        if (vertices[i].x > maxX) maxX = vertices[i].x;
-        if (vertices[i].y < minY) minY = vertices[i].y;
-        if (vertices[i].y > maxY) maxY = vertices[i].y;
-        if (vertices[i].z < minZ) minZ = vertices[i].z;
-        if (vertices[i].z > maxZ) maxZ = vertices[i].z;
-    }
-
-    // Step 2: Compute the center of the bounding box
-    GLfloat centerX = (minX + maxX) / 2.0f;
-    GLfloat centerY = (minY + maxY) / 2.0f;
-    GLfloat centerZ = (minZ + maxZ) / 2.0f;
-
-    // Step 3: Compute the maximum extent (the largest distance from the center)
-    GLfloat extentX = (maxX - minX) / 2.0f;
-    GLfloat extentY = (maxY - minY) / 2.0f;
-    GLfloat extentZ = (maxZ - minZ) / 2.0f;
-    GLfloat maxExtent = (extentX > extentY) ? extentX : extentY;
-    maxExtent = (maxExtent > extentZ) ? maxExtent : extentZ;
-
-    // Step 4: Translate and scale the points into the [-1, 1] range
-    for (int i = 0; i < numVertices; i++) {
-        vertices[i].x = (vertices[i].x - centerX) / extentX;
-        vertices[i].y = (vertices[i].y - centerY) / extentY;
-        vertices[i].z = (vertices[i].z - centerZ) / extentZ;
-
-    }
-
-}
 
 
 vec4 map_to_sphere(float x, float y) {
@@ -66,7 +30,7 @@ vec4 vec4_cross(vec4 a, vec4 b) {
     result.x = a.y * b.z - a.z * b.y;
     result.y = a.z * b.x - a.x * b.z;
     result.z = a.x * b.y - a.y * b.x;
-    result.w = 0.0f;  // Ensure w remains 1
+    result.w = 0.0f;  
 
     return result;
 }
@@ -141,5 +105,43 @@ void track_ball(int x, int y, mat4 *ctm){
         *ctm = mat_mul_mat(mat_transpose(rotate_x), *ctm);
         stored_x = floatx;
         stored_y = floaty;
+    }
 }
+
+
+mat4 translate_mat(vec4 translation){
+    mat4 result = create_identity_mat();
+    result.w = translation;
+    result.w.w = 1.0;
+    return result;
 }
+
+void rotate_at_point_along_axis(mat4 *ctm, vec4 axis, vec4 point){
+
+    vec4 rotation_axis = vec_standardlize(axis);
+    float rotation_angle = 15;  
+    
+    float d = sqrt(rotation_axis.y*rotation_axis.y + rotation_axis.z*rotation_axis.z);
+
+    mat4 rotate_x = Rx(rotation_axis.z,rotation_axis.y,d);
+    mat4 rotate_y_t = RyT(rotation_axis.x,d);
+    mat4 rotate_z = create_rotate_mat(0,0,rotation_angle);
+
+    mat4 translate = translate_mat(point);
+    vec4 translate_back = point;
+    translate_back.x = -point.x;
+    translate_back.y = -point.y;
+    translate_back.z = -point.z;
+    mat4 translate_back_mat = translate_mat(translate_back);
+
+
+    *ctm = mat_mul_mat(translate_back_mat, *ctm);
+    *ctm = mat_mul_mat(rotate_x, *ctm);
+    *ctm = mat_mul_mat(rotate_y_t, *ctm);
+    *ctm = mat_mul_mat(rotate_z, *ctm);
+    *ctm = mat_mul_mat(mat_transpose(rotate_y_t), *ctm);
+    *ctm = mat_mul_mat(mat_transpose(rotate_x), *ctm);
+    *ctm = mat_mul_mat(translate, *ctm);
+}
+
+

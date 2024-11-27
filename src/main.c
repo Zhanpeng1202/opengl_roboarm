@@ -27,15 +27,18 @@
 
 #include "tempLib.h" 
 #include "generate.h"
-#include "trackball.h"
+#include "rotate.h"
 
 mat4 current_transformation_matrix = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+mat4 base_rotation = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+mat4 joint_low_rotation = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
 GLuint ctm_location;
-int display_type = 0;
-int read_vertices = 0;
+GLuint ctm_type;
 
-
-
+int joint_low_points = 0;
+int joint_middle_points = 0;
+GLuint base_location;
+GLuint joint_low_location;
 
 void init(void)
 {
@@ -47,9 +50,21 @@ void init(void)
     vec4 *positions = (vec4 *) malloc(sizeof(vec4) * num_vertices);
     vec4 *colors = (vec4 *) malloc(sizeof(vec4) * num_vertices);
 
+    // base
+    int start_point = 0;
+    generate_cylinder(positions, 0.2, 0.1, 0.0, -0.3, 0.3);
+    generate_cylinder(positions, 0.1, 0.3, 0.2, -0.3, 0.3);
+    joint_low_points = generate_horizontal_cylinder(positions, 0.1, 0.2, 0.35, -0.3, 0.3);
 
-    // generateCylinderMesh(positions);
-    generateSphereMesh(positions);
+    generate_cylinder(positions, 0.05, 0.2, 0.5, -0.3, 0.3);
+    joint_middle_points = generate_horizontal_cylinder(positions, 0.05, 0.1, 0.6, -0.3, 0.3);
+
+    // generate_cylinder(positions, 0.025, 0.15, 0.7, -0.3, 0.3);
+    // generate_horizontal_cylinder(positions, 0.025, 0.07, 0.7+0.15/2);
+
+    // generate_cylinder(positions, 0.025, 0.15, 0.9);
+    // generate_horizontal_cylinder(positions, 0.025, 0.07, 0.9+0.15/2);
+
     random_color(colors);
 
 
@@ -76,16 +91,23 @@ void init(void)
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glDepthRange(1,0);
     ctm_location = glGetUniformLocation(program, "ctm");
-
+    base_location = glGetUniformLocation(program, "ctm_base");
+    joint_low_location = glGetUniformLocation(program, "ctm_joint_low");
+    ctm_type = glGetUniformLocation(program, "ctm_type");
 }
 
 
 
 void display(void)
 {
+    // glPolygonMode(GL_FRONT, GL_FILL);
+    // glPolygonMode(GL_BACK, GL_LINE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &current_transformation_matrix);
-    glDrawArrays(GL_TRIANGLES, 0, num_vertices_sphere);
+    glUniform1i(ctm_type, 0); 
+    glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &current_transformation_matrix); 
+
+
+    glDrawArrays(GL_TRIANGLES, 0, joint_low_points);
     glutSwapBuffers();
 }
 
@@ -112,31 +134,22 @@ void motion(int x, int y) {
 
 void keyboard(unsigned char key, int mousex, int mousey)
 {
-    if(key == '1'){
-        display_type = 1;
-        display();
-    }
-    if(key == '2'){
-        display_type = 2;
-        display();
-    }
-    if(key == '3'){
-        display_type = 3;
-        display();
-    }
-
-
-    if(key == 'u'){
+    if(key == 'a'){
         mat4 scale_mat = create_scale_mat(1.1,1.1,1.1);
         current_transformation_matrix = mat_mul_mat(current_transformation_matrix,scale_mat);
         display();
     }
-
-    if(key == 'i'){
+    if(key == 'z'){
         mat4 scale_mat = create_scale_mat(0.9,0.9,0.9);
         current_transformation_matrix = mat_mul_mat(current_transformation_matrix,scale_mat);
         display();
     }
+
+    // if(key == 'w'){
+    //     base_rotation = rotate
+    // }
+
+
 }
 
 int main(int argc, char **argv)

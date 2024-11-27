@@ -1,5 +1,6 @@
 #include "tempLib.h"
 #include <stdio.h>
+#include <assert.h>
 #include <math.h>
 #define DEG_TO_RAD(angle) ((angle) * M_PI / 180.0f)
 
@@ -92,7 +93,7 @@ vec4 vec_add(vec4 v1, vec4 v2) {
     result.x = v1.x + v2.x;
     result.y = v1.y + v2.y;
     result.z = v1.z + v2.z;
-    result.w = v1.w + v2.w;
+    assert(result.w == 0.0);
     return result;
 }
 
@@ -101,7 +102,7 @@ vec4 vec_sub(vec4 v1, vec4 v2) {
     result.x = v1.x - v2.x;
     result.y = v1.y - v2.y;
     result.z = v1.z - v2.z;
-    result.w = v1.w - v2.w;
+    assert(result.w == 0.0);
     return result;
 }
 
@@ -127,7 +128,7 @@ vec4 vec_cross(vec4 v1, vec4 v2) {
     result.x = (v1.y * v2.z) - (v1.z * v2.y);
     result.y = (v1.z * v2.x) - (v1.x * v2.z);
     result.z = (v1.x * v2.y) - (v1.y * v2.x);
-    result.w = 1.0;
+    result.w = 0.0;
     return result;
 }
 

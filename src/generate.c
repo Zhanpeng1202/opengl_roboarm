@@ -7,13 +7,10 @@
 #define PI 3.14159265359
 #define NUM_LATITUDES 20
 #define NUM_LONGITUDES 20
-int num_vertices_sphere = 6*NUM_LATITUDES*NUM_LONGITUDES;
 int num_points = 0;
 
 
-
 void generateSphereMesh(vec4 *vertices) {
-    int index = 0;
     for (int j = 0; j < NUM_LONGITUDES; ++j) {
         float phi1 = 2 * PI * (float)(j) / NUM_LONGITUDES;
         float phi2 = 2 * PI * (float)(j + 1) / NUM_LONGITUDES;
@@ -27,78 +24,122 @@ void generateSphereMesh(vec4 *vertices) {
             vec4 p3 = {cos(theta1) * cos(phi2), sin(theta1), cos(theta1) * sin(phi2), 1.0f};
             vec4 p4 = {cos(theta2) * cos(phi2), sin(theta2), cos(theta2) * sin(phi2), 1.0f};
 
-            vertices[index++] = p1;
-            vertices[index++] = p2;
-            vertices[index++] = p3;
+            vertices[0] = p1;
+            vertices[1] = p2;
+            vertices[2] = p3;
 
-            vertices[index++] = p3;
-            vertices[index++] = p2;
-            vertices[index++] = p4;
+            vertices[3] = p3;
+            vertices[4] = p2;
+            vertices[5] = p4;
+            vertices+=6;
             num_points +=6;
         }
     }
 }
 
-void generateCylinderMesh(vec4 *vertices) {
-    const float height = 2.0f; // Height of the cylinder
-    const float radius = 1.0f; // Radius of the cylinder
-    int index = 0;
+int generate_cylinder(vec4 *vertices, float radius, float height, float y, float x_offset, float z_offset){
+    vertices+=num_points;
+
 
     for (int j = 0; j < NUM_LONGITUDES; ++j) {
         float phi1 = 2 * PI * (float)(j) / NUM_LONGITUDES;
         float phi2 = 2 * PI * (float)(j + 1) / NUM_LONGITUDES;
 
-        // Bottom vertice
-        vec4 p1 = {radius * cos(phi1), -height / 2.0f, radius * sin(phi1), 1.0f};
-        vec4 p2 = {radius * cos(phi2), -height / 2.0f, radius * sin(phi2), 1.0f};
+        vec4 p1 = {radius * cos(phi1)+x_offset, -height / 2.0f+y, radius * sin(phi1)+z_offset, 1.0f};
+        vec4 p2 = {radius * cos(phi2)+x_offset, -height / 2.0f+y, radius * sin(phi2)+z_offset, 1.0f};
+        vec4 p3 = {radius * cos(phi1)+x_offset, height / 2.0f+y, radius * sin(phi1)+z_offset, 1.0f};
+        vec4 p4 = {radius * cos(phi2)+x_offset, height / 2.0f+y, radius * sin(phi2)+z_offset, 1.0f};
 
-        // Top vertices
-        vec4 p3 = {radius * cos(phi1), height / 2.0f, radius * sin(phi1), 1.0f};
-        vec4 p4 = {radius * cos(phi2), height / 2.0f, radius * sin(phi2), 1.0f};
+        vertices[0] = p1;
+        vertices[1] = p2;
+        vertices[2] = p3;
 
-        // First triangle for the side face
-        vertices[index++] = p1;
-        vertices[index++] = p2;
-        vertices[index++] = p3;
-
-        // Second triangle for the side face
-        vertices[index++] = p3;
-        vertices[index++] = p2;
-        vertices[index++] = p4;
+        vertices[3] = p3;
+        vertices[4] = p2;
+        vertices[5] = p4;
 
         num_points += 6;
+        vertices+=6;
     }
 
-    // Generate the top and bottom caps
-    vec4 center_top = {0.0f, height / 2.0f, 0.0f, 1.0f};   // Center of the top cap
-    vec4 center_bottom = {0.0f, -height / 2.0f, 0.0f, 1.0f}; // Center of the bottom cap
+    vec4 center_top = {0.0f+x_offset, height / 2.0f + y, 0.0f+z_offset, 1.0f};   // Center of the top cap
+    vec4 center_bottom = {0.0f+x_offset, -height / 2.0f + y, 0.0f+z_offset , 1.0f}; // Center of the bottom cap
 
     for (int j = 0; j < NUM_LONGITUDES; ++j) {
         float phi1 = 2 * PI * (float)(j) / NUM_LONGITUDES;
         float phi2 = 2 * PI * (float)(j + 1) / NUM_LONGITUDES;
 
-        // Points on the bottom circle
-        vec4 p1 = {radius * cos(phi1), -height / 2.0f, radius * sin(phi1), 1.0f};
-        vec4 p2 = {radius * cos(phi2), -height / 2.0f, radius * sin(phi2), 1.0f};
+        vec4 p1 = {radius * cos(phi1)+x_offset, -height / 2.0f + y, radius * sin(phi1)+z_offset, 1.0f};
+        vec4 p2 = {radius * cos(phi2)+x_offset, -height / 2.0f + y, radius * sin(phi2)+z_offset, 1.0f};
 
-        // Points on the top circle
-        vec4 p3 = {radius * cos(phi1), height / 2.0f, radius * sin(phi1), 1.0f};
-        vec4 p4 = {radius * cos(phi2), height / 2.0f, radius * sin(phi2), 1.0f};
+        vec4 p3 = {radius * cos(phi1)+x_offset, height / 2.0f + y, radius * sin(phi1)+z_offset, 1.0f};
+        vec4 p4 = {radius * cos(phi2)+x_offset, height / 2.0f + y, radius * sin(phi2)+z_offset, 1.0f};
 
-        // Bottom cap triangle
-        vertices[index++] = center_bottom;
-        vertices[index++] = p2;
-        vertices[index++] = p1;
+        vertices[0] = center_bottom;
+        vertices[1] = p2;
+        vertices[2] = p1;
 
-        // Top cap triangle
-        vertices[index++] = center_top;
-        vertices[index++] = p3;
-        vertices[index++] = p4;
+        vertices[3] = center_top;
+        vertices[4] = p3;
+        vertices[5] = p4;
 
         num_points += 6;
+        vertices+=6;
     }
+    return num_points;
 }
 
+int generate_horizontal_cylinder(vec4 *vertices, float radius, float height, float y, float x_offset, float z_offset){
+    vertices+=num_points;
+
+    vec4 center_near= {0.0f+x_offset,  y, -height/2.0f+z_offset, 1.0f};   // Center of the near cap
+    vec4 center_far = {0.0f+x_offset,  y, height/2.0f+z_offset, 1.0f}; // Center of the far cap
+
+    for (int j = 0; j < NUM_LONGITUDES; ++j) {
+        float phi1 = 2 * PI * (float)(j) / NUM_LONGITUDES;
+        float phi2 = 2 * PI * (float)(j + 1) / NUM_LONGITUDES;
+
+        vec4 p1 = {radius * cos(phi1)+x_offset, radius * sin(phi1)+y, -height/2.0f+z_offset, 1.0f};
+        vec4 p2 = {radius * cos(phi2)+x_offset, radius * sin(phi2)+y, -height/2.0f+z_offset, 1.0f};
+
+        vec4 p3 = {radius * cos(phi1)+x_offset, radius * sin(phi1)+y, height/2.0f+z_offset, 1.0f};
+        vec4 p4 = {radius * cos(phi2)+x_offset, radius * sin(phi2)+y, height/2.0f+z_offset, 1.0f};
+
+        vertices[0] = p1;
+        vertices[1] = p2;
+        vertices[2] = p3;
+
+        vertices[3] = p3;
+        vertices[4] = p2;
+        vertices[5] = p4;
+
+        num_points += 6;
+        vertices+=6;
+    }
+
+    for (int j = 0; j < NUM_LONGITUDES; ++j) {
+        float phi1 = 2 * PI * (float)(j) / NUM_LONGITUDES;
+        float phi2 = 2 * PI * (float)(j + 1) / NUM_LONGITUDES;
+
+        vec4 p1 = {radius * cos(phi1)+x_offset, radius * sin(phi1)+y, -height/2.0f+z_offset, 1.0f};
+        vec4 p2 = {radius * cos(phi2)+x_offset, radius * sin(phi2)+y, -height/2.0f+z_offset, 1.0f};
+
+        vec4 p3 = {radius * cos(phi1)+x_offset, radius * sin(phi1)+y, height/2.0f+z_offset, 1.0f};
+        vec4 p4 = {radius * cos(phi2)+x_offset, radius * sin(phi2)+y, height/2.0f+z_offset, 1.0f};
+
+        vertices[0] = center_near;
+        vertices[1] = p2;
+        vertices[2] = p1;
+
+        vertices[3] = center_far;
+        vertices[4] = p3;
+        vertices[5] = p4;
+
+        num_points += 6;
+        vertices+=6;
+    }
+    return num_points;
+}
 
 
 void random_color(vec4 * colors){
