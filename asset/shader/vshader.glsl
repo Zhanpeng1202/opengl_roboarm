@@ -5,7 +5,7 @@ attribute vec4 vColor;
 varying vec4 color;
 
 
-uniform mat4 ctm;
+
 uniform mat4 ctm_base;
 uniform mat4 ctm_joint_low;
 uniform mat4 ctm_joint_middle;
@@ -18,9 +18,9 @@ void main()
 {
 	color = vColor;
 	// since glsl do not support switch, we use if else
-	gl_Position = ctm * vPosition;
+
 	if (ctm_type == 0) {
-		gl_Position = ctm * vPosition;
+
 	} else if (ctm_type == 1) {
 		gl_Position = ctm_base * vPosition;
 	} else if (ctm_type == 2) {

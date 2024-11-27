@@ -116,10 +116,36 @@ mat4 translate_mat(vec4 translation){
     return result;
 }
 
-void rotate_at_point_along_axis(mat4 *ctm, vec4 axis, vec4 point){
+// void rotate_at_point_along_axis(mat4 *ctm, vec4 axis, vec4 point, float rotation_angle){
+
+//     vec4 rotation_axis = vec_standardlize(axis);
+    
+//     float d = sqrt(rotation_axis.y*rotation_axis.y + rotation_axis.z*rotation_axis.z);
+
+//     mat4 rotate_x = Rx(rotation_axis.z,rotation_axis.y,d);
+//     mat4 rotate_y_t = RyT(rotation_axis.x,d);
+//     mat4 rotate_z = create_rotate_mat(0,0,rotation_angle);
+
+//     mat4 translate = translate_mat(point);
+//     vec4 translate_back = point;
+//     translate_back.x = -point.x;
+//     translate_back.y = -point.y;
+//     translate_back.z = -point.z;
+//     mat4 translate_back_mat = translate_mat(translate_back);
+
+
+//     *ctm = mat_mul_mat(translate_back_mat, *ctm);
+//     *ctm = mat_mul_mat(rotate_x, *ctm);
+//     *ctm = mat_mul_mat(rotate_y_t, *ctm);
+//     *ctm = mat_mul_mat(rotate_z, *ctm);
+//     *ctm = mat_mul_mat(mat_transpose(rotate_y_t), *ctm);
+//     *ctm = mat_mul_mat(mat_transpose(rotate_x), *ctm);
+//     *ctm = mat_mul_mat(translate, *ctm);
+// }
+
+mat4 rotate_at_point_along_axis(vec4 axis, vec4 point, float rotation_angle){
 
     vec4 rotation_axis = vec_standardlize(axis);
-    float rotation_angle = 15;  
     
     float d = sqrt(rotation_axis.y*rotation_axis.y + rotation_axis.z*rotation_axis.z);
 
@@ -134,14 +160,12 @@ void rotate_at_point_along_axis(mat4 *ctm, vec4 axis, vec4 point){
     translate_back.z = -point.z;
     mat4 translate_back_mat = translate_mat(translate_back);
 
-
-    *ctm = mat_mul_mat(translate_back_mat, *ctm);
-    *ctm = mat_mul_mat(rotate_x, *ctm);
-    *ctm = mat_mul_mat(rotate_y_t, *ctm);
-    *ctm = mat_mul_mat(rotate_z, *ctm);
-    *ctm = mat_mul_mat(mat_transpose(rotate_y_t), *ctm);
-    *ctm = mat_mul_mat(mat_transpose(rotate_x), *ctm);
-    *ctm = mat_mul_mat(translate, *ctm);
+    mat4 result = mat_mul_mat(translate,mat_transpose(rotate_x));
+    result = mat_mul_mat(result,mat_transpose(rotate_y_t));
+    result = mat_mul_mat(result,rotate_z);
+    result = mat_mul_mat(result,rotate_y_t);
+    result = mat_mul_mat(result,rotate_x);
+    result = mat_mul_mat(result,translate_back_mat);
+    return result;
 }
-
 
