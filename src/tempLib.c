@@ -93,6 +93,7 @@ vec4 vec_add(vec4 v1, vec4 v2) {
     result.x = v1.x + v2.x;
     result.y = v1.y + v2.y;
     result.z = v1.z + v2.z;
+    result.w = 0.0;
     assert(result.w == 0.0);
     return result;
 }
@@ -102,6 +103,7 @@ vec4 vec_sub(vec4 v1, vec4 v2) {
     result.x = v1.x - v2.x;
     result.y = v1.y - v2.y;
     result.z = v1.z - v2.z;
+    result.w = 0.0;
     assert(result.w == 0.0);
     return result;
 }

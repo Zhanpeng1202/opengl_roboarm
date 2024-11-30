@@ -28,7 +28,7 @@
 #include "tempLib.h" 
 #include "generate.h"
 #include "rotate.h"
-
+#include "view.h"
 
 mat4 base_ctm = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
 mat4* joint_ctm;
@@ -43,12 +43,20 @@ GLuint joint_middle_location;
 GLuint joint_upper_location;
 GLuint wrist_location;
 
+vec4 eye =    (vec4) {0.5,0,1,1};
+vec4 center = (vec4) {-0,0,0  ,1};
+vec4 up = (vec4) {0,1,0,0};
+mat4 view_mat= {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+mat4 proj_mat = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+GLuint modelview_location;
+GLuint projection_location;
+
 void init(void)
 {
     GLuint program = initShader("asset/shader/vshader.glsl", "asset/shader/fshader.glsl");
     glUseProgram(program);
 
-    int num_vertices = 6*10000;
+    int num_vertices = 6*1000;
 
     vec4 *positions = (vec4 *) malloc(sizeof(vec4) * num_vertices);
     vec4 *colors = (vec4 *) malloc(sizeof(vec4) * num_vertices);
@@ -63,7 +71,6 @@ void init(void)
     joint_positions[0] = (vec4) {-0.3, 0, 0.3, 1};
 
 
-    // base
     generate_cylinder(positions, 0.2, 0.01, 0.0, -0.3, 0.3);
     number_of_points[0] = generate_cylinder(positions, 0.1, 0.2, 0.1, -0.3, 0.3);
 
@@ -100,13 +107,18 @@ void init(void)
 
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    glDepthRange(1,0);
+    glDepthRange(0,1);
     base_location = glGetUniformLocation(program, "ctm_base");
     joint_low_location = glGetUniformLocation(program, "ctm_joint_low");
     joint_middle_location = glGetUniformLocation(program, "ctm_joint_middle");
     joint_upper_location = glGetUniformLocation(program, "ctm_joint_upper");
     wrist_location = glGetUniformLocation(program, "ctm_wrist");
     ctm_type = glGetUniformLocation(program, "ctm_type");
+    modelview_location = glGetUniformLocation(program, "view_mat");
+    projection_location = glGetUniformLocation(program, "projection_mat");
+
+    proj_mat = proj_matrix();
+    glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &proj_mat);
 }
 
 
@@ -115,7 +127,18 @@ void display(void)
 {
     // glPolygonMode(GL_FRONT, GL_FILL);
     // glPolygonMode(GL_BACK, GL_LINE);
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    view_mat = look_at(eye, center, up);
+    glUniformMatrix4fv(modelview_location, 1, GL_FALSE, (GLfloat *) &view_mat);
+
+
+
+
+    // print_mat(proj_mat);
+    // print_mat(view_mat);
+
+
     glUniform1i(ctm_type, 1); 
     glUniformMatrix4fv(base_location, 1, GL_FALSE, (GLfloat *) &base_ctm);
     glDrawArrays(GL_TRIANGLES, 0, number_of_points[0]);
@@ -135,7 +158,7 @@ void display(void)
     glUniform1i(ctm_type, 5); 
     glUniformMatrix4fv(wrist_location, 1, GL_FALSE, (GLfloat *) &joint_ctm[3]);
     glDrawArrays(GL_TRIANGLES, number_of_points[3], number_of_points[4]-number_of_points[3]); 
-    print_mat(joint_ctm[3]);
+    // print_mat(joint_ctm[3]);
 
 
     glutSwapBuffers();
@@ -157,12 +180,17 @@ void mouse(int button, int state, int x, int y) {
 
 
 void motion(int x, int y) {
-    display();
+    // display();
+    glutPostRedisplay();
 }
 
 
 void keyboard(unsigned char key, int mousex, int mousey)
 {
+    if(key == '1'){
+        eye.x += 0.01;
+        view_mat = look_at(eye, center, up);
+    }
     if(key == 'a'){
         mat4 scale_mat = create_scale_mat(1.1,1.1,1.1);
         base_ctm = mat_mul_mat(scale_mat,base_ctm);
@@ -319,7 +347,8 @@ void keyboard(unsigned char key, int mousex, int mousey)
         }
     }
 
-    display();
+    // display();
+    glutPostRedisplay();
 
 }
 
@@ -332,7 +361,7 @@ int main(int argc, char **argv)
     glutInitWindowPosition(300,300);
     glutCreateWindow("Computer Generated Object");
     init();
-    display();
+    // display();
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
     glutMouseFunc(mouse);

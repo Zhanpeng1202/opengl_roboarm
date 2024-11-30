@@ -25,7 +25,7 @@ POSSIBLE_MAIN = src/main.o
 
 # Compile rules
 $(TARGET): $(OBJS) $(MAIN_FILE:.c=.o)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS) $(OPTIONS) $(DEFINES)
+	$(CC) $(CFLAGS) -g -o  $@ $^ $(LDFLAGS) $(LIBS) $(OPTIONS) $(DEFINES)
 
 # from .c to .o
 src/%.o: src/%.c

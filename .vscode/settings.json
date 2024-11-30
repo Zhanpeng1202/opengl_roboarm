@@ -6,6 +6,7 @@
         "stdlib.h": "c",
         "initshader.h": "c",
         "math.h": "c",
-        "generate.h": "c"
+        "generate.h": "c",
+        "stdio.h": "c"
     }
 }
