@@ -5,8 +5,8 @@
 
 
 #define PI 3.14159265359
-#define NUM_LATITUDES 20
-#define NUM_LONGITUDES 20
+#define NUM_LATITUDES 40
+#define NUM_LONGITUDES 40
 int num_points = 0;
 
 

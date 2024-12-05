@@ -33,58 +33,87 @@
 mat4 base_ctm = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
 mat4* joint_ctm;
 vec4* joint_positions;
+vec4* joint_axis;
 int*  number_of_points;
 
 GLuint ctm_type;
-
 GLuint base_location;
 GLuint joint_low_location;
 GLuint joint_middle_location;
 GLuint joint_upper_location;
 GLuint wrist_location;
 
-vec4 eye =    (vec4) {0.5,0,1,1};
-vec4 center = (vec4) {-0,0,0  ,1};
+vec4 eye =    (vec4) {0,0,1,1};
+vec4 center = (vec4) {0,0,0,1};
 vec4 up = (vec4) {0,1,0,0};
 mat4 view_mat= {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
 mat4 proj_mat = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
 GLuint modelview_location;
 GLuint projection_location;
 
+vec4 light_position = (vec4) {0,5,0,1};
+GLuint light_position_location, fake_shadow_location;
+
+int num_base;
+
 void init(void)
 {
     GLuint program = initShader("asset/shader/vshader.glsl", "asset/shader/fshader.glsl");
     glUseProgram(program);
 
-    int num_vertices = 6*1000;
+    int num_vertices = 6*8000;
 
     vec4 *positions = (vec4 *) malloc(sizeof(vec4) * num_vertices);
     vec4 *colors = (vec4 *) malloc(sizeof(vec4) * num_vertices);
+    vec4 *normals = (vec4 *) malloc(sizeof(vec4) * num_vertices);
 
-    joint_positions = (vec4 *) malloc(sizeof(vec4) * 4);
+    // initialize position, color, normal
+    for(int i = 0; i < num_vertices; i++){
+        positions[i] = (vec4) {0,0,0,0};
+        colors[i] = (vec4) {0,0,0,0};
+        normals[i] = (vec4) {0,0,0,0};
+    }
+
+    joint_positions = (vec4 *) malloc(sizeof(vec4) * 5);
+    joint_axis = (vec4 *) malloc(sizeof(vec4) * 5);
     number_of_points = (int *) malloc(sizeof(int) * 4);
     joint_ctm = (mat4 *) malloc(sizeof(mat4) * 4);
     joint_ctm[0] = (mat4) {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
     joint_ctm[1] = (mat4) {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
     joint_ctm[2] = (mat4) {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
     joint_ctm[3] = (mat4) {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
-    joint_positions[0] = (vec4) {-0.3, 0, 0.3, 1};
+    joint_positions[0] = (vec4) {-0.0, 0, 0.0, 1};
+    joint_axis[0] = (vec4) {0,1,0,0};
 
 
-    generate_cylinder(positions, 0.2, 0.01, 0.0, -0.3, 0.3);
-    number_of_points[0] = generate_cylinder(positions, 0.1, 0.2, 0.1, -0.3, 0.3);
+    num_base =  generate_cylinder(positions, 1, 0.01, 0.0, -0.0, 0.0);
+    number_of_points[0] = generate_cylinder(positions, 0.1, 0.2, 0.1, -0.0, 0.0);
 
-    for(int i = 0; i < 3; i++){
-        int j = i+1;
-        joint_positions[i] = (vec4) {-0.3,0.2*(j),0.3,1};
-        generate_horizontal_cylinder(positions,0.07, 0.07, 0.2*j, -0.3, 0.3);
-        number_of_points[j] = generate_cylinder(positions,0.05, 0.2,0.2*j+0.1,-0.3, 0.3);
+    for(int i = 1; i < 5; i++){
+        joint_positions[i] = (vec4) {-0.0,0.2*(i),0.0,1};
+        joint_axis[i] = (vec4) {0,0,1,0};
+        generate_horizontal_cylinder(positions,0.07, 0.07, 0.2*i, -0.0, 0.0);
+        number_of_points[i] = generate_cylinder(positions,0.05, 0.2,0.2*i+0.1,-0.0, 0.0);
     }
-    joint_positions[3] = (vec4) {-0.3,0.8,0.3,1};
-    generate_horizontal_cylinder(positions,0.07, 0.07, 0.2*4, -0.3, 0.3);
-    number_of_points[4] = generate_cylinder(positions,0.05, 0.2,0.2*4+0.1,-0.3, 0.3);
 
+    joint_axis[4] = (vec4) {0,1,0,0};
+
+    for(int i = 0; i < number_of_points[4]; i+=3){
+        vec4 l1 = vec_sub(positions[i+1], positions[i]);
+        vec4 l2 = vec_sub(positions[i+2], positions[i]);
+        normals[i] =  vec_standardlize(vec_cross(l2, l1));
+        normals[i+1] = normals[i];
+        normals[i+2] = normals[i];
+    }
     random_color(colors);
+
+    // now we add fake shadow to robot arm 
+    int offset = number_of_points[4] - num_base;
+    for(int i = num_base; i<number_of_points[4]; i++){
+        positions[i+offset] = positions[i];
+        colors[i+offset] = (vec4) {0,0,0,1};
+        normals[i+offset] = normals[i];
+    }
 
     GLuint vao;
     glGenVertexArraysAPPLE(1, &vao);
@@ -93,17 +122,19 @@ void init(void)
     GLuint buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * num_vertices + sizeof(vec4) * num_vertices, NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec4) * num_vertices*3, NULL, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec4) * num_vertices, positions);
     glBufferSubData(GL_ARRAY_BUFFER, sizeof(vec4) * num_vertices, sizeof(vec4) * num_vertices, colors);
-
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vec4) * num_vertices*2, sizeof(vec4) * num_vertices, normals);
     GLuint vPosition = glGetAttribLocation(program, "vPosition");
     glEnableVertexAttribArray(vPosition);
     glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid *) (0));
-
     GLuint vColor = glGetAttribLocation(program, "vColor");
     glEnableVertexAttribArray(vColor);
     glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid *) (sizeof(vec4) * num_vertices));
+    GLuint vNormal = glGetAttribLocation(program, "vNormal");
+    glEnableVertexAttribArray(vNormal);
+    glVertexAttribPointer(vNormal, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid *) (sizeof(vec4) * num_vertices*2));
 
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -116,9 +147,11 @@ void init(void)
     ctm_type = glGetUniformLocation(program, "ctm_type");
     modelview_location = glGetUniformLocation(program, "view_mat");
     projection_location = glGetUniformLocation(program, "projection_mat");
-
+    light_position_location = glGetUniformLocation(program, "light_position");
+    glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
     proj_mat = proj_matrix();
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &proj_mat);
+    fake_shadow_location = glGetUniformLocation(program, "fake_shadow");
 }
 
 
@@ -132,13 +165,7 @@ void display(void)
     view_mat = look_at(eye, center, up);
     glUniformMatrix4fv(modelview_location, 1, GL_FALSE, (GLfloat *) &view_mat);
 
-
-
-
-    // print_mat(proj_mat);
-    // print_mat(view_mat);
-
-
+    glUniform1i(fake_shadow_location, 0);
     glUniform1i(ctm_type, 1); 
     glUniformMatrix4fv(base_location, 1, GL_FALSE, (GLfloat *) &base_ctm);
     glDrawArrays(GL_TRIANGLES, 0, number_of_points[0]);
@@ -158,62 +185,123 @@ void display(void)
     glUniform1i(ctm_type, 5); 
     glUniformMatrix4fv(wrist_location, 1, GL_FALSE, (GLfloat *) &joint_ctm[3]);
     glDrawArrays(GL_TRIANGLES, number_of_points[3], number_of_points[4]-number_of_points[3]); 
-    // print_mat(joint_ctm[3]);
 
+    glUniform1i(fake_shadow_location, 1);
+    // the offset is pretty for fake shaow is like this 
+    // base cylinder start: number_of_points[4], length1: number_of_points[0]-num_base
+    // lower joint   start: number_of_points[4] + length1, length2: number_of_points[1]-number_of_points[0]
+    // middle joint  start: number_of_points[4] + length1 + length2, length3: number_of_points[2]-number_of_points[1]
+    // upper joint   start: number_of_points[4] + length1 + length2 + length3, length4: number_of_points[3]-number_of_points[2]
+    // wrist         start: number_of_points[4] + length1 + length2 + length3 + length4, length5: number_of_points[4]-number_of_points[3]
 
+    glUniform1i(ctm_type, 1); 
+    glDrawArrays(GL_TRIANGLES, number_of_points[4], number_of_points[0]-num_base);
+    glUniform1i(ctm_type, 2); 
+    glDrawArrays(GL_TRIANGLES, number_of_points[4] + number_of_points[0]-num_base, number_of_points[1]-number_of_points[0]);
+    glUniform1i(ctm_type, 3); 
+    glDrawArrays(GL_TRIANGLES, number_of_points[4] + number_of_points[0]-num_base + number_of_points[1]-number_of_points[0], number_of_points[2]-number_of_points[1]);
+    glUniform1i(ctm_type, 4); 
+    glDrawArrays(GL_TRIANGLES, number_of_points[4] + number_of_points[0]-num_base + number_of_points[1]-number_of_points[0] + number_of_points[2]-number_of_points[1], number_of_points[3]-number_of_points[2]);
+    glUniform1i(ctm_type, 5); 
+    glDrawArrays(GL_TRIANGLES, number_of_points[4] + number_of_points[0]-num_base + number_of_points[1]-number_of_points[0] + number_of_points[2]-number_of_points[1] + number_of_points[3]-number_of_points[2], number_of_points[4]-number_of_points[3]);
     glutSwapBuffers();
 }
 
 
 
 void mouse(int button, int state, int x, int y) {
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        clicked  = 1;
-    }
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
-        clicked  = 0;
-        motion_start = 0;
-    }
-
-
 }
 
 
 void motion(int x, int y) {
-    // display();
-    glutPostRedisplay();
+    // glutPostRedisplay();
 }
 
 
+float theta = 0;
+float phi = 0;
+float radius = 1;
+
 void keyboard(unsigned char key, int mousex, int mousey)
 {
+
+
     if(key == '1'){
-        eye.x += 0.01;
+        theta += 0.1;
+        eye.x = radius*sin(theta)*cos(phi);
+        eye.y = radius*sin(phi);
+        eye.z = radius*cos(theta)*cos(phi);
         view_mat = look_at(eye, center, up);
     }
+
+    if(key == '2'){
+        theta -= 0.1;
+        eye.x = radius*sin(theta)*cos(phi);
+        eye.y = radius*sin(phi);
+        eye.z = radius*cos(theta)*cos(phi);
+        view_mat = look_at(eye, center, up);
+    }
+    if(key == '3'){
+        phi += 0.1;
+        eye.x = radius*sin(theta)*cos(phi);
+        eye.y = radius*sin(phi);
+        eye.z = radius*cos(theta)*cos(phi);
+        view_mat = look_at(eye, center, up);
+    }
+
+    if(key == '4'){
+        phi -= 0.1;
+        eye.x = radius*sin(theta)*cos(phi);
+        eye.y = radius*sin(phi);
+        eye.z = radius*cos(theta)*cos(phi);
+        view_mat = look_at(eye, center, up);
+    }
+
+    if(key == '5'){
+        light_position.x += 0.1;
+        glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
+    }   
+
+    if(key == '6'){
+        light_position.x -= 0.1;
+        glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
+    }
+    if(key == '7'){
+        light_position.y += 0.1;
+        glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
+    }
+
+    if(key == '8'){
+        light_position.y -= 0.1;
+        glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
+    }
+
+    if(key == '9'){
+        light_position.z += 0.1;
+        glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
+    }
+    if(key == '0'){
+        light_position.z -= 0.1;
+        glUniform4fv(light_position_location, 1, (GLfloat *) &light_position);
+    }
+
     if(key == 'a'){
-        mat4 scale_mat = create_scale_mat(1.1,1.1,1.1);
-        base_ctm = mat_mul_mat(scale_mat,base_ctm);
-        for(int i = 0; i < 4; i++){
-            joint_ctm[i] = mat_mul_mat(scale_mat,joint_ctm[i]);
-        }
-        for(int i = 0; i < 4; i++){
-            joint_positions[i] = mat_mul_vec(scale_mat,joint_positions[i]);
-        }
+        radius -= 0.01;
+        eye.x = radius*sin(theta)*cos(phi);
+        eye.y = radius*sin(phi);
+        eye.z = radius*cos(theta)*cos(phi);
+        view_mat = look_at(eye, center, up);
     }
     if(key == 'z'){
-        mat4 scale_mat = create_scale_mat(0.9,0.9,0.9);
-        base_ctm = mat_mul_mat(scale_mat,base_ctm);
-        for(int i = 0; i < 4; i++){
-            joint_ctm[i] = mat_mul_mat(scale_mat,joint_ctm[i]);
-        }
-        for(int i = 0; i < 4; i++){
-            joint_positions[i] = mat_mul_vec(scale_mat,joint_positions[i]);
-        }
+        radius += 0.01;
+        eye.x = radius*sin(theta)*cos(phi);
+        eye.y = radius*sin(phi);
+        eye.z = radius*cos(theta)*cos(phi);
+        view_mat = look_at(eye, center, up);
     }
 
     if(key == 'w'){
-        vec4 axis = (vec4) {0,1,0,0};
+        vec4 axis = joint_axis[0];
         vec4 point = joint_positions[0];
         mat4 rotate = rotate_at_point_along_axis(axis, point, 0.1);
         base_ctm = mat_mul_mat(rotate,base_ctm); 
@@ -224,13 +312,14 @@ void keyboard(unsigned char key, int mousex, int mousey)
                 joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
             }
         }
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
 
     if(key == 's'){
-        vec4 axis = (vec4) {0,1,0,0};
+        vec4 axis = joint_axis[0];
         vec4 point = joint_positions[0];
         mat4 rotate = rotate_at_point_along_axis(axis, point, -0.1);
         base_ctm = mat_mul_mat(rotate,base_ctm); 
@@ -241,13 +330,14 @@ void keyboard(unsigned char key, int mousex, int mousey)
                 joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
             }
         }
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
     if(key == 'e'){
-        vec4 axis = (vec4) {0,0,-1,0};
-        vec4 point = joint_positions[0];
+        vec4 axis = joint_axis[1];
+        vec4 point = joint_positions[1];
         mat4 rotate = rotate_at_point_along_axis(axis, point, 0.1);
         for(int i = 0; i < 4; i++){
             if(i == 0){
@@ -256,14 +346,15 @@ void keyboard(unsigned char key, int mousex, int mousey)
                 joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
             }
         }
-        for(int i = 1; i < 4; i++){
+        for(int i = 1; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
 
     if(key == 'd'){
-        vec4 axis = (vec4) {0,0,-1,0};
-        vec4 point = joint_positions[0];
+        vec4 axis = joint_axis[1];
+        vec4 point = joint_positions[1];
         // print_vec(point);
         mat4 rotate = rotate_at_point_along_axis(axis, point, -0.1);
         for(int i = 0; i < 4; i++){
@@ -273,81 +364,95 @@ void keyboard(unsigned char key, int mousex, int mousey)
                 joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
             }
         }
-        for(int i = 1; i < 4; i++){
+        for(int i = 1; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
 
     if(key == 'r'){
-        vec4 axis = (vec4) {0,0,-1,0};
-        vec4 point = joint_positions[1];
+        vec4 axis = joint_axis[2];
+        vec4 point = joint_positions[2];
         mat4 rotate = rotate_at_point_along_axis(axis, point, 0.1);
         for(int i = 1; i < 4; i++){
             joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
         }
-        for(int i = 2; i < 4; i++){
+        for(int i = 2; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
 
     if(key == 'f'){
-        vec4 axis = (vec4) {0,0,-1,0};
-        vec4 point = joint_positions[1];
+        vec4 axis = joint_axis[2];
+        vec4 point = joint_positions[2];
         mat4 rotate = rotate_at_point_along_axis(axis, point, -0.1);
         for(int i = 1; i < 4; i++){
             joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
         }
-        for(int i = 2; i < 4; i++){
+        for(int i = 2; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
 
     if(key == 't'){
-        vec4 axis = (vec4) {0,0,-1,0};
-        vec4 point = joint_positions[2];
+        vec4 axis = joint_axis[3];
+        vec4 point = joint_positions[3];
         mat4 rotate = rotate_at_point_along_axis(axis, point, 0.1);
         for(int i = 2; i < 4; i++){
             joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
         }
-        for(int i = 3; i < 4; i++){
+        for(int i = 3; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
     
     if(key == 'g'){
-        vec4 axis = (vec4) {0,0,-1,0};
-        vec4 point = joint_positions[2];
+        vec4 axis = joint_axis[3];
+        vec4 point = joint_positions[3];
         mat4 rotate = rotate_at_point_along_axis(axis, point, -0.1);
         for(int i = 2; i < 4; i++){
             joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
         }
-        for(int i = 3; i < 4; i++){
+        for(int i = 3; i < 5; i++){
             joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+            joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
         }
     }
 
     if(key == 'y'){
-        vec4 axis = (vec4) {joint_positions[3].x-joint_positions[2].x,
-                            joint_positions[3].y-joint_positions[2].y,
-                            joint_positions[3].z-joint_positions[2].z,0};
-        vec4 point = joint_positions[3];
+        // vec4 axis = (vec4) {joint_positions[3].x-joint_positions[2].x,
+        //                     joint_positions[3].y-joint_positions[2].y,
+        //                     joint_positions[3].z-joint_positions[2].z,0};
+        vec4 axis = joint_axis[4];
+        vec4 point = joint_positions[4];
         mat4 rotate = rotate_at_point_along_axis(axis, point, 0.1);
         for(int i = 3; i < 4; i++){
             joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
         }
+        // for(int i = 4; i < 5; i++){
+        //     joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+        //     joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
+        // }
     }
     if(key == 'h'){
-        vec4 axis = (vec4) {joint_positions[3].x-joint_positions[2].x,
-                            joint_positions[3].y-joint_positions[2].y,
-                            joint_positions[3].z-joint_positions[2].z,0};
-        vec4 point = joint_positions[3];
+        // vec4 axis = (vec4) {joint_positions[3].x-joint_positions[2].x,
+        //                     joint_positions[3].y-joint_positions[2].y,
+        //                     joint_positions[3].z-joint_positions[2].z,0};
+        vec4 axis = joint_axis[4];
+        vec4 point = joint_positions[4];
         mat4 rotate = rotate_at_point_along_axis(axis, point, -0.1);
         for(int i = 3; i < 4; i++){
             joint_ctm[i] = mat_mul_mat(rotate,joint_ctm[i]);
         }
+        // for(int i = 4; i < 5; i++){
+        //     joint_positions[i] = mat_mul_vec(rotate,joint_positions[i]);
+        //     joint_axis[i] = mat_mul_vec(rotate,joint_axis[i]);
+        // }
     }
 
-    // display();
     glutPostRedisplay();
 
 }

@@ -7,6 +7,7 @@
         "initshader.h": "c",
         "math.h": "c",
         "generate.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "locale": "cpp"
     }
 }
