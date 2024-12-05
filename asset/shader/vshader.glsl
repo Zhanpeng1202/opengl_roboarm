@@ -4,7 +4,7 @@ attribute vec4 vPosition, vColor, vNormal;
 varying vec4 color;
 
 
-uniform mat4 ctm_base, ctm_joint_low, ctm_joint_middle, ctm_joint_upper, ctm_wrist;
+uniform mat4 ctm_base, ctm_joint_low, ctm_joint_middle, ctm_joint_upper, ctm_wrist, ctm_finger1, ctm_finger2;
 uniform int ctm_type, fake_shadow;
 uniform mat4 view_mat, projection_mat;
 
@@ -25,7 +25,11 @@ void main()
 		ctm = ctm_joint_upper;
 	} else if (ctm_type == 5) {
 		ctm = ctm_wrist;
-	}		
+	} else if (ctm_type == 6) {
+		ctm = ctm_finger1;
+	} else if (ctm_type == 7) {
+		ctm = ctm_finger2;
+	}
 
 
 	ambient = 0.3 * vColor;
